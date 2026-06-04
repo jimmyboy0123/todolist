@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List — 事项与日历</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-logo">📋 Todo List</div>
+    <nav class="app-nav">
+      <a href="/">首页</a>
+      <a href="/hub">个人事项</a>
+      <a href="/calendar">日历视图</a>
+    </nav>
+  </header>
+  <main class="app-main">
+    <div class="home-hero">
+      <h1>轻量事项管理</h1>
+      <p>无需登录，SQLite 本地存储，Windows / Mac 均可运行。<br>解压后启动即可分享使用。</p>
+      <div class="home-cards">
+        <a href="/hub" class="card home-card">
+          <div class="home-card-icon">📋</div>
+          <h2>个人事项</h2>
+          <p>创建、跟踪和管理待办事项，支持优先级、周期任务与子事项</p>
+        </a>
+        <a href="/calendar" class="card home-card">
+          <div class="home-card-icon">📅</div>
+          <h2>日历视图</h2>
+          <p>月视图日历，按个人/部门/公司范围查看当日与逾期事项</p>
+        </a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

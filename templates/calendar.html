@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日历视图 — Todo List</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-logo">📋 Todo List</div>
+    <nav class="app-nav">
+      <a href="/">首页</a>
+      <a href="/hub">个人事项</a>
+      <a href="/calendar">日历视图</a>
+    </nav>
+  </header>
+  <main class="app-main">
+    <div class="tc-layout">
+      <div class="tc-left">
+        <div class="tc-scope">
+          <button class="tc-scope-btn active" data-scope="my">我的</button>
+          <button class="tc-scope-btn" data-scope="department">部门</button>
+          <button class="tc-scope-btn" data-scope="company">公司</button>
+        </div>
+        <div class="tc-month-nav">
+          <button class="tc-nav-btn" id="prev-month">‹</button>
+          <div class="tc-month-title" id="month-title"></div>
+          <button class="tc-nav-btn" id="next-month">›</button>
+          <button class="tc-nav-btn" id="today-btn" title="今天">今</button>
+        </div>
+        <div class="tc-cal-wrap">
+          <div class="tc-weekdays">
+            <div class="tc-weekday">日</div><div class="tc-weekday">一</div><div class="tc-weekday">二</div>
+            <div class="tc-weekday">三</div><div class="tc-weekday">四</div><div class="tc-weekday">五</div>
+            <div class="tc-weekday">六</div>
+          </div>
+          <div class="tc-days" id="cal-days"></div>
+        </div>
+        <div class="tc-regular-section">
+          <div class="tc-regular-title">常规事项</div>
+          <div id="regular-list"></div>
+        </div>
+      </div>
+
+      <div class="tc-right">
+        <div class="tc-right-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div class="tc-right-title" id="date-title">请选择日期</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-outline btn-sm" id="search-btn">🔎 搜索</button>
+              <a href="/hub" class="btn btn-primary btn-sm" id="add-btn">+ 新增事项</a>
+            </div>
+          </div>
+          <div class="tc-tabs" id="tabs">
+            <button class="tc-tab-btn active" data-tab="today">本日事件 <span id="today-count">0</span></button>
+            <button class="tc-tab-btn" data-tab="overdue">逾期事件 <span id="overdue-count">0</span></button>
+          </div>
+        </div>
+        <div class="tc-right-body" id="event-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">📅</div>
+            <p>点击左侧日历查看当天事项</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="search-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>搜索事项</h3>
+        <button class="modal-close" id="search-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control" id="search-input" placeholder="输入关键词...">
+        <div id="search-results" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/calendar.js"></script>
+</body>
+</html>
