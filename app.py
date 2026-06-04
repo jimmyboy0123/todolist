@@ -11,15 +11,33 @@ from werkzeug.utils import secure_filename
 
 import calendar_service as cal
 from db import get_conn, init_db, now_str, row_to_dict, rows_to_list
-from paths import get_resource_dir, get_uploads_dir
+from paths import get_resource_dir, get_uploads_dir, is_frozen
 
 _res = get_resource_dir()
+_static_dir = _res / "static"
 app = Flask(
     __name__,
     template_folder=str(_res / "templates"),
-    static_folder=str(_res / "static"),
+    static_folder=str(_static_dir),
+    static_url_path="/static",
 )
 init_db()
+
+
+@app.context_processor
+def inject_embedded_assets():
+    """打包 exe 内嵌 CSS，避免 WebView 未加载 /static 时页面无样式。"""
+    if not is_frozen():
+        return {}
+    css_path = _static_dir / "css" / "style.css"
+    if css_path.is_file():
+        return {"embedded_css": css_path.read_text(encoding="utf-8")}
+    return {}
+
+
+@app.route("/static/<path:filename>")
+def serve_static(filename: str):
+    return send_from_directory(_static_dir, filename)
 
 VALID_STATUS = {"draft", "open", "in_progress", "pending_review", "done", "archived"}
 VALID_PRIORITY = {"urgent", "high", "normal", "low"}

@@ -13,6 +13,9 @@
   --shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
+/* 旧版 WebView 回退色（与变量保持一致） */
+body { background: #f5f7fa; color: #1a1a2e; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -136,7 +139,14 @@ a:hover { color: var(--accent-hover); }
 
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 
-.tc-layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+.tc-layout {
+  display: -ms-grid;
+  display: grid;
+  -ms-grid-columns: 340px 1fr;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
 @media (max-width: 900px) { .tc-layout { grid-template-columns: 1fr; } }
 
 .tc-left {
@@ -161,7 +171,9 @@ a:hover { color: var(--accent-hover); }
 
 .tc-cal-wrap { padding: 0 12px 8px; box-sizing: border-box; }
 .tc-weekdays, .tc-days {
+  display: -ms-grid;
   display: grid;
+  -ms-grid-columns: (1fr)[7];
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 3px;
   width: 100%;

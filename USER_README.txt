@@ -25,4 +25,6 @@ Todo List — Windows 桌面版
 
 [系统要求]
   Windows 10 / 11（64 位）
-  需已安装 Microsoft Edge WebView2（Win10/11 通常已自带）
+  必须安装 Microsoft Edge WebView2 运行库（界面才能正常显示）
+  下载：https://go.microsoft.com/fwlink/p/?LinkId=2124703
+  若窗口排版错乱、像纯文字网页，请先安装 WebView2 后重启程序

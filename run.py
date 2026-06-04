@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import threading
 import time
@@ -19,11 +20,11 @@ def _start_server(host: str, port: int) -> None:
     app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 
 
-def _wait_for_server(url: str, timeout: float = 15.0) -> bool:
+def _wait_for_url(url: str, timeout: float = 20.0) -> bool:
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=0.5) as resp:
+            with urllib.request.urlopen(url, timeout=0.8) as resp:
                 if resp.status < 500:
                     return True
         except (urllib.error.URLError, TimeoutError, OSError):
@@ -31,27 +32,57 @@ def _wait_for_server(url: str, timeout: float = 15.0) -> bool:
     return False
 
 
+def _wait_for_app_ready(host: str, port: int) -> bool:
+    base = f"http://{host}:{port}"
+    if not _wait_for_url(base):
+        return False
+    return _wait_for_url(f"{base}/static/css/style.css")
+
+
 def run_desktop(host: str, port: int) -> None:
-    """Windows 桌面版：内嵌窗口，不打开系统浏览器。"""
+    """Windows 桌面版：内嵌 Chromium 窗口（需 WebView2）。"""
+    os.environ.setdefault("PYWEBVIEW_GUI", "edgechromium")
+
     import webview
 
     url = f"http://{host}:{port}"
     server = threading.Thread(target=_start_server, args=(host, port), daemon=True)
     server.start()
 
-    if not _wait_for_server(url):
-        print(f"[ERROR] 服务启动失败: {url}")
+    if not _wait_for_app_ready(host, port):
+        _show_fatal(
+            "Todo List 启动失败",
+            "本地服务或样式文件未加载成功。\n请确认 5050 端口未被占用后重试。",
+        )
         sys.exit(1)
 
     webview.create_window(
         "Todo List",
         url,
-        width=1200,
-        height=800,
-        min_size=(900, 600),
+        width=1280,
+        height=860,
+        min_size=(960, 640),
         text_select=True,
     )
-    webview.start()
+    try:
+        webview.start(gui="edgechromium", debug=False)
+    except Exception as exc:
+        _show_fatal(
+            "Todo List 无法打开窗口",
+            "请安装 Microsoft Edge WebView2 运行库后重试。\n"
+            "下载：https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+            f"详情：{exc}",
+        )
+        sys.exit(1)
+
+
+def _show_fatal(title: str, message: str) -> None:
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(0, message, title, 0x10)
+    except Exception:
+        print(f"{title}\n{message}", file=sys.stderr)
 
 
 def run_browser(host: str, port: int, open_browser: bool) -> None:
@@ -83,16 +114,8 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1", help="监听地址，0.0.0.0 允许局域网访问")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--no-browser", action="store_true", help="开发模式下不自动打开浏览器")
-    parser.add_argument(
-        "--desktop",
-        action="store_true",
-        help="桌面窗口模式（打包 exe 默认启用）",
-    )
-    parser.add_argument(
-        "--browser",
-        action="store_true",
-        help="强制使用系统浏览器（仅开发调试）",
-    )
+    parser.add_argument("--desktop", action="store_true", help="桌面窗口模式（打包 exe 默认启用）")
+    parser.add_argument("--browser", action="store_true", help="强制使用系统浏览器（仅开发调试）")
     args = parser.parse_args()
 
     use_desktop = (is_frozen() or args.desktop) and not args.browser

@@ -1,0 +1,4 @@
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% for script in extra_scripts or [] %}
+<script src="{{ url_for('static', filename=script) }}"></script>
+{% endfor %}

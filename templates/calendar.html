@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>日历视图 — Todo List</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  {% include '_assets_head.html' %}
 </head>
 <body>
   <header class="app-header">
@@ -96,7 +96,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js"></script>
-  <script src="/static/js/calendar.js"></script>
+  {% set extra_scripts = ['js/calendar.js'] %}
+  {% include '_assets_foot.html' %}
 </body>
 </html>
