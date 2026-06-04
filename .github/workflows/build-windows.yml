@@ -37,13 +37,6 @@ jobs:
       - name: Copy user readme
         run: copy USER_README.txt dist\USER_README.txt
 
-      - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
-
-      - name: Build installer
-        run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\TodoList.iss
-
       - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
@@ -52,8 +45,25 @@ jobs:
             dist/TodoList.exe
             dist/USER_README.txt
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        id: installer
+        continue-on-error: true
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC not found: $iscc" }
+          & $iscc /Qp "installer\TodoList.iss"
+          if (-not (Test-Path "installer\output\TodoList-Setup.exe")) { throw "TodoList-Setup.exe was not created" }
+
       - name: Upload installer
+        if: steps.installer.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: TodoList-Setup
           path: installer/output/TodoList-Setup.exe
+
+      - name: Fail if installer step failed
+        if: steps.installer.outcome == 'failure'
+        run: exit 1
