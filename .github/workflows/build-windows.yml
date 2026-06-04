@@ -37,6 +37,11 @@ jobs:
       - name: Copy user readme
         run: copy USER_README.txt dist\USER_README.txt
 
+      - name: Verify EXE
+        run: |
+          if (-not (Test-Path dist\TodoList.exe)) { throw "dist\TodoList.exe missing" }
+          (Get-Item dist\TodoList.exe).Length
+
       - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
@@ -49,21 +54,29 @@ jobs:
         run: choco install innosetup -y --no-progress
 
       - name: Build installer
-        id: installer
-        continue-on-error: true
+        shell: pwsh
         run: |
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { throw "ISCC not found: $iscc" }
-          & $iscc /Qp "installer\TodoList.iss"
-          if (-not (Test-Path "installer\output\TodoList-Setup.exe")) { throw "TodoList-Setup.exe was not created" }
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found" }
+          Write-Host "Using ISCC: $iscc"
+          New-Item -ItemType Directory -Force -Path installer\output | Out-Null
+          & $iscc /Qp "$PWD\installer\TodoList.iss"
+          Write-Host "Output directory listing:"
+          Get-ChildItem -Recurse installer\output | Format-Table -AutoSize
+          $setup = Get-ChildItem -Path installer\output -Filter TodoList-Setup.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $setup) {
+            Write-Host "Searching entire workspace for TodoList-Setup.exe ..."
+            $setup = Get-ChildItem -Path $PWD -Recurse -Filter TodoList-Setup.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $setup) { throw "TodoList-Setup.exe was not created" }
+          Write-Host "Installer: $($setup.FullName) ($($setup.Length) bytes)"
 
       - name: Upload installer
-        if: steps.installer.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: TodoList-Setup
           path: installer/output/TodoList-Setup.exe
-
-      - name: Fail if installer step failed
-        if: steps.installer.outcome == 'failure'
-        run: exit 1
