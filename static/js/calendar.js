@@ -10,6 +10,8 @@
     activeTab: 'today',
     todayItems: [],
     overdueItems: [],
+    modalItemId: null,
+    uploadTargetId: null,
   };
 
   function fmt(d) {
@@ -63,6 +65,128 @@
       clearTimeout(st);
       st = setTimeout(doSearch, 300);
     };
+
+    const closeEventModal = () => document.getElementById('event-modal').classList.remove('open');
+    document.getElementById('event-modal-close').onclick = closeEventModal;
+    document.getElementById('event-modal-ok').onclick = closeEventModal;
+    document.getElementById('event-modal').onclick = e => {
+      if (e.target.id === 'event-modal') closeEventModal();
+    };
+
+    document.getElementById('tc-attachment-input').onchange = async e => {
+      const itemId = state.uploadTargetId;
+      const files = [...(e.target.files || [])];
+      e.target.value = '';
+      state.uploadTargetId = null;
+      if (!itemId || !files.length) return;
+      await TodoApp.uploadAttachmentFiles(itemId, files);
+      const attachments = await refreshItemAttachmentCount(itemId);
+      if (state.modalItemId === itemId) {
+        const el = document.getElementById('event-modal-attachments');
+        if (el) {
+          el.innerHTML = renderAttachmentListHtml(attachments, true, itemId);
+          bindModalAttachmentDeletes(itemId);
+        }
+      }
+    };
+  }
+
+  async function refreshItemAttachmentCount(itemId) {
+    const attachments = await TodoApp.fetchAttachments(itemId);
+    setAttachmentCount(itemId, attachments.length);
+    return attachments;
+  }
+
+  function setAttachmentCount(itemId, count) {
+    const set = list => {
+      list.forEach(it => {
+        if (+it.id === itemId) it.attachment_count = count;
+      });
+    };
+    set(state.todayItems);
+    set(state.overdueItems);
+    renderEvents();
+  }
+
+  function pickAttachments(itemId) {
+    state.uploadTargetId = itemId;
+    document.getElementById('tc-attachment-input').click();
+  }
+
+  function attachmentBadge(count) {
+    const n = count || 0;
+    return n ? `<span class="tc-att-badge">📎 ${n}</span>` : '';
+  }
+
+  function renderAttachmentListHtml(attachments, editable, itemId) {
+    if (!attachments?.length) {
+      return '<span style="color:var(--text-muted);font-size:13px;">暂无附件</span>';
+    }
+    return `<ul class="attachment-list">${attachments.map(a => `
+      <li class="attachment-item" data-att-id="${a.id}">
+        <div class="attachment-item-name">
+          <a href="${a.url}" target="_blank" rel="noopener" download>${TodoApp.esc(a.original_filename)}</a>
+          <div class="attachment-item-meta">${TodoApp.formatFileSize(a.size_bytes)}</div>
+        </div>
+        ${editable ? '<div class="attachment-item-actions"><button type="button" class="btn btn-sm btn-danger tc-att-del">删除</button></div>' : ''}
+      </li>
+    `).join('')}</ul>`;
+  }
+
+  function bindModalAttachmentDeletes(itemId) {
+    const el = document.getElementById('event-modal-attachments');
+    if (!el) return;
+    el.querySelectorAll('.tc-att-del').forEach(btn => {
+      btn.onclick = async e => {
+        const attId = +e.target.closest('.attachment-item').dataset.attId;
+        if (!confirm('确定删除该附件？')) return;
+        const res = await TodoApp.deleteAttachment(attId);
+        if (res.ok) await renderModalAttachments(itemId);
+        else alert(res.msg || '删除失败');
+      };
+    });
+  }
+
+  async function renderModalAttachments(itemId) {
+    const attachments = await refreshItemAttachmentCount(itemId);
+    const el = document.getElementById('event-modal-attachments');
+    if (!el) return;
+    el.innerHTML = renderAttachmentListHtml(attachments, true, itemId);
+    bindModalAttachmentDeletes(itemId);
+  }
+
+  async function openEventModal(itemId) {
+    state.modalItemId = itemId;
+    const res = await TodoApp.api('/api/items/' + itemId);
+    if (!res.ok) {
+      alert(res.msg || '加载失败');
+      return;
+    }
+    const it = res.item;
+    document.getElementById('event-modal-title').textContent = it.title;
+    document.getElementById('event-modal-hub').href = '/hub';
+    document.getElementById('event-modal-body').innerHTML = `
+      <div class="detail-section">
+        ${TodoApp.statusBadge(it.status, it.status_info)}
+        <span style="margin-left:8px;">${it.priority_info?.icon || ''} ${TodoApp.esc(it.priority_info?.name || '')}</span>
+      </div>
+      <div class="detail-section">
+        <h4>日期</h4>
+        <p>开始 ${TodoApp.formatDate(it.start_date)} · 截止 ${TodoApp.formatDate(it.due_date)}</p>
+      </div>
+      ${it.content ? `<div class="detail-section"><h4>内容</h4><p style="white-space:pre-wrap;">${TodoApp.esc(it.content)}</p></div>` : ''}
+      <div class="detail-section">
+        <h4>附件</h4>
+        <p class="attachment-hint">单文件最大 20MB，可上传多个附件</p>
+        <div class="attachment-upload">
+          <button type="button" class="btn btn-outline btn-sm" id="event-modal-upload">选择文件上传</button>
+        </div>
+        <div id="event-modal-attachments"></div>
+      </div>
+    `;
+    document.getElementById('event-modal-upload').onclick = () => pickAttachments(itemId);
+    document.getElementById('event-modal').classList.add('open');
+    await renderModalAttachments(itemId);
   }
 
   function changeMonth(delta) {
@@ -189,20 +313,47 @@
       el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${state.activeTab === 'overdue' ? '⏰' : '📋'}</div><p>${state.activeTab === 'overdue' ? '暂无逾期事项' : '本日暂无事项'}</p></div>`;
       return;
     }
+    const showAttach = state.activeTab === 'today';
     el.innerHTML = items.map(it => `
       <div class="tc-event" data-id="${it.id}">
-        <div class="tc-event-title">${TodoApp.esc(it.title)}</div>
-        <div class="tc-event-meta">
-          ${TodoApp.statusBadge(it.status, it.status_info)}
-          <span>${it.priority_info?.icon || ''}</span>
-          ${it.assignee_name ? `<span>👤 ${TodoApp.esc(it.assignee_name)}</span>` : ''}
-          ${it.frequency_label ? `<span>🔄 ${TodoApp.esc(it.frequency_label)}</span>` : ''}
-          ${it.due_date ? `<span>📅 ${it.due_date}</span>` : ''}
+        <div class="tc-event-main">
+          <div class="tc-event-title">${TodoApp.esc(it.title)}</div>
+          <div class="tc-event-meta">
+            ${TodoApp.statusBadge(it.status, it.status_info)}
+            <span>${it.priority_info?.icon || ''}</span>
+            ${it.assignee_name ? `<span>👤 ${TodoApp.esc(it.assignee_name)}</span>` : ''}
+            ${it.frequency_label ? `<span>🔄 ${TodoApp.esc(it.frequency_label)}</span>` : ''}
+            ${it.due_date ? `<span>📅 ${it.due_date}</span>` : ''}
+            ${showAttach ? attachmentBadge(it.attachment_count) : ''}
+          </div>
         </div>
+        ${showAttach ? `
+        <div class="tc-event-actions">
+          <button type="button" class="btn btn-outline btn-sm tc-event-upload">📎 上传附件</button>
+          <button type="button" class="btn btn-outline btn-sm tc-event-detail">查看详情</button>
+        </div>` : ''}
       </div>
     `).join('');
+
     el.querySelectorAll('.tc-event').forEach(ev => {
-      ev.onclick = () => { window.location.href = '/hub'; };
+      const id = +ev.dataset.id;
+      const main = ev.querySelector('.tc-event-main');
+      if (main) main.onclick = () => showAttach && openEventModal(id);
+
+      const uploadBtn = ev.querySelector('.tc-event-upload');
+      if (uploadBtn) {
+        uploadBtn.onclick = e => {
+          e.stopPropagation();
+          pickAttachments(id);
+        };
+      }
+      const detailBtn = ev.querySelector('.tc-event-detail');
+      if (detailBtn) {
+        detailBtn.onclick = e => {
+          e.stopPropagation();
+          openEventModal(id);
+        };
+      }
     });
   }
 

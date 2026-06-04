@@ -1,4 +1,4 @@
-"""应用路径：兼容开发模式与 PyInstaller 打包后的 exe。"""
+"""应用路径：数据目录与静态资源目录。"""
 from __future__ import annotations
 
 import sys
@@ -28,3 +28,10 @@ def get_data_dir() -> Path:
     data = get_app_dir() / "data"
     data.mkdir(parents=True, exist_ok=True)
     return data
+
+
+def get_uploads_dir() -> Path:
+    """事项附件存储目录。"""
+    uploads = get_data_dir() / "uploads"
+    uploads.mkdir(parents=True, exist_ok=True)
+    return uploads

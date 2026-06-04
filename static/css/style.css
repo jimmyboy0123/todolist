@@ -102,6 +102,20 @@ a:hover { color: var(--accent-hover); }
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
 .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
 
+.attachment-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.attachment-upload { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.attachment-input { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+.attachment-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.attachment-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+}
+.attachment-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-item-name a { color: var(--text-primary); font-weight: 500; }
+.attachment-item-name a:hover { color: var(--accent); }
+.attachment-item-meta { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.attachment-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
   display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px;
@@ -201,11 +215,17 @@ a:hover { color: var(--accent-hover); }
 
 .tc-event {
   padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
-  margin-bottom: 8px; cursor: pointer;
+  margin-bottom: 8px;
 }
 .tc-event:hover { border-color: var(--accent); }
+.tc-event-main { cursor: pointer; }
 .tc-event-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-.tc-event-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.tc-event-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.tc-event-actions {
+  display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.tc-att-badge { color: var(--accent); font-weight: 500; }
 
 .home-hero { text-align: center; padding: 60px 20px; }
 .home-hero h1 { font-size: 32px; margin-bottom: 12px; }

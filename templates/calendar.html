@@ -67,6 +67,22 @@
     </div>
   </main>
 
+  <div class="modal-overlay" id="event-modal">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <h3 id="event-modal-title">事项</h3>
+        <button class="modal-close" id="event-modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body" id="event-modal-body"></div>
+      <div class="modal-footer">
+        <a href="/hub" class="btn btn-outline" id="event-modal-hub">在事项页编辑</a>
+        <button type="button" class="btn btn-primary" id="event-modal-ok">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="tc-attachment-input" class="attachment-input" multiple>
+
   <div class="modal-overlay" id="search-modal">
     <div class="modal">
       <div class="modal-header">

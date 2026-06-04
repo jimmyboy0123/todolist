@@ -28,6 +28,38 @@ const TodoApp = {
   scopeParams(scope) {
     return new URLSearchParams({ scope });
   },
+
+  formatFileSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  },
+
+  async fetchAttachments(itemId) {
+    const res = await this.api('/api/items/' + itemId + '/attachments');
+    return res.ok ? res.attachments : [];
+  },
+
+  async uploadAttachmentFiles(itemId, files) {
+    let ok = true;
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/items/' + itemId + '/attachments', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!data.ok) {
+        alert((file.name || '文件') + ' 上传失败：' + (data.msg || '未知错误'));
+        ok = false;
+      }
+    }
+    return ok;
+  },
+
+  async deleteAttachment(attId) {
+    const res = await fetch('/api/attachments/' + attId, { method: 'DELETE' });
+    return res.json();
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => {

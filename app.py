@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime
+from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
+from werkzeug.utils import secure_filename
 
 import calendar_service as cal
 from db import get_conn, init_db, now_str, row_to_dict, rows_to_list
-from paths import get_resource_dir
+from paths import get_resource_dir, get_uploads_dir
 
 _res = get_resource_dir()
 app = Flask(
@@ -21,6 +24,8 @@ init_db()
 VALID_STATUS = {"draft", "open", "in_progress", "pending_review", "done", "archived"}
 VALID_PRIORITY = {"urgent", "high", "normal", "low"}
 VALID_SCOPE = {"my", "team", "department", "company"}
+MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
+BLOCKED_EXTENSIONS = {".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".dll", ".scr"}
 
 
 def ok(**payload):
@@ -44,6 +49,25 @@ def enrich_item(item: dict) -> dict:
     else:
         item["parent_id"] = None
     return item
+
+
+def enrich_attachment_counts(items: list[dict]) -> list[dict]:
+    ids = list({int(i["id"]) for i in items if i.get("id")})
+    if not ids:
+        return items
+    placeholders = ",".join("?" * len(ids))
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT item_id, COUNT(*) AS cnt FROM item_attachments
+            WHERE item_id IN ({placeholders}) GROUP BY item_id
+            """,
+            ids,
+        ).fetchall()
+    counts = {int(r["item_id"]): int(r["cnt"]) for r in rows}
+    for item in items:
+        item["attachment_count"] = counts.get(int(item["id"]), 0)
+    return items
 
 
 def format_day_item(item: dict, date_str: str) -> dict:
@@ -167,7 +191,17 @@ def api_item_detail(item_id: int):
                 "SELECT * FROM activities WHERE item_id = ? ORDER BY created_at DESC", [item_id]
             ).fetchall()
         )
-    return ok(item=enrich_item(row_to_dict(row)), children=[enrich_item(c) for c in children], activities=activities)
+        att_rows = rows_to_list(
+            conn.execute(
+                "SELECT * FROM item_attachments WHERE item_id = ? ORDER BY created_at DESC", [item_id]
+            ).fetchall()
+        )
+    return ok(
+        item=enrich_item(row_to_dict(row)),
+        children=[enrich_item(c) for c in children],
+        activities=activities,
+        attachments=[_format_attachment(r) for r in att_rows],
+    )
 
 
 @app.route("/api/items", methods=["POST"])
@@ -271,6 +305,114 @@ def api_item_delete(item_id: int):
     return ok()
 
 
+def _item_exists(conn, item_id: int) -> bool:
+    return conn.execute("SELECT id FROM items WHERE id = ?", [item_id]).fetchone() is not None
+
+
+def _attachment_row(conn, att_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM item_attachments WHERE id = ?", [att_id]).fetchone()
+    return row_to_dict(row)
+
+
+def _format_attachment(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "item_id": row["item_id"],
+        "original_filename": row["original_filename"],
+        "mime_type": row.get("mime_type") or "",
+        "size_bytes": row.get("size_bytes") or 0,
+        "created_at": row.get("created_at") or "",
+        "url": f"/api/attachments/{row['id']}/download",
+    }
+
+
+def _stored_filename(original: str) -> str:
+    ext = Path(original).suffix.lower()
+    if ext in BLOCKED_EXTENSIONS:
+        ext = ".bin"
+    safe_ext = secure_filename(ext) or ""
+    if len(safe_ext) > 20:
+        safe_ext = safe_ext[:20]
+    return f"{uuid.uuid4().hex}{safe_ext}"
+
+
+@app.route("/api/items/<int:item_id>/attachments", methods=["GET", "POST"])
+def api_item_attachments(item_id: int):
+    with get_conn() as conn:
+        if not _item_exists(conn, item_id):
+            return err("事项不存在", 404)
+
+        if request.method == "GET":
+            rows = rows_to_list(
+                conn.execute(
+                    "SELECT * FROM item_attachments WHERE item_id = ? ORDER BY created_at DESC",
+                    [item_id],
+                ).fetchall()
+            )
+            return ok(attachments=[_format_attachment(r) for r in rows])
+
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return err("请选择文件")
+        original = f.filename.strip()
+        if not original:
+            return err("无效文件名")
+        ext = Path(original).suffix.lower()
+        if ext in BLOCKED_EXTENSIONS:
+            return err("不支持该文件类型")
+
+        data = f.read()
+        if not data:
+            return err("文件为空")
+        if len(data) > MAX_ATTACHMENT_BYTES:
+            return err(f"文件不能超过 {MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB")
+
+        stored = _stored_filename(original)
+        item_dir = get_uploads_dir() / str(item_id)
+        item_dir.mkdir(parents=True, exist_ok=True)
+        (item_dir / stored).write_bytes(data)
+
+        cur = conn.execute(
+            """
+            INSERT INTO item_attachments (item_id, original_filename, stored_filename, mime_type, size_bytes)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [item_id, original, stored, f.mimetype or "", len(data)],
+        )
+        row = _attachment_row(conn, cur.lastrowid)
+    return ok(attachment=_format_attachment(row))
+
+
+@app.route("/api/attachments/<int:att_id>/download", methods=["GET"])
+def api_attachment_download(att_id: int):
+    with get_conn() as conn:
+        row = _attachment_row(conn, att_id)
+        if not row:
+            return err("附件不存在", 404)
+        item_id = row["item_id"]
+        stored = row["stored_filename"]
+        original = row["original_filename"]
+
+    path = get_uploads_dir() / str(item_id) / stored
+    if not path.is_file():
+        return err("文件已丢失", 404)
+    return send_from_directory(path.parent, path.name, as_attachment=True, download_name=original)
+
+
+@app.route("/api/attachments/<int:att_id>", methods=["DELETE"])
+def api_attachment_delete(att_id: int):
+    with get_conn() as conn:
+        row = _attachment_row(conn, att_id)
+        if not row:
+            return err("附件不存在", 404)
+        conn.execute("DELETE FROM item_attachments WHERE id = ?", [att_id])
+
+    path = get_uploads_dir() / str(row["item_id"]) / row["stored_filename"]
+    if path.is_file():
+        path.unlink()
+    return ok()
+
+
 @app.route("/api/items/<int:item_id>/activities", methods=["POST"])
 def api_item_activity(item_id: int):
     data = request.get_json(silent=True) or {}
@@ -314,8 +456,8 @@ def api_calendar():
         today_items = [i for i in today_items if not i.get("is_regular") or i.get("show_due_to_checkpoint")]
         overdue_items = [i for i in overdue_items if not i.get("is_regular")]
 
-        today = [format_day_item(i, date_str) for i in today_items]
-        overdue = [format_day_item(i, date_str) for i in overdue_items]
+        today = enrich_attachment_counts([format_day_item(i, date_str) for i in today_items])
+        overdue = enrich_attachment_counts([format_day_item(i, date_str) for i in overdue_items])
 
         family = []
         if parent_id:

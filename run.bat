@@ -4,20 +4,6 @@ setlocal EnableExtensions
 
 cd /d "%~dp0"
 
-
-
-if exist "dist\TodoList.exe" (
-
-    echo Starting TodoList.exe ...
-
-    start "" "%~dp0dist\TodoList.exe"
-
-    exit /b 0
-
-)
-
-
-
 set "USE_PY=0"
 
 python --version >nul 2>&1

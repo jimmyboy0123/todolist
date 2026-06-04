@@ -72,7 +72,19 @@ CREATE TABLE IF NOT EXISTS activities (
 CREATE INDEX IF NOT EXISTS idx_items_scope ON items(scope);
 CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
 CREATE INDEX IF NOT EXISTS idx_items_due ON items(due_date);
+CREATE TABLE IF NOT EXISTS item_attachments (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id           INTEGER NOT NULL,
+    original_filename TEXT NOT NULL,
+    stored_filename   TEXT NOT NULL,
+    mime_type         TEXT DEFAULT '',
+    size_bytes        INTEGER DEFAULT 0,
+    created_at        TEXT DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_items_parent ON items(parent_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_item ON item_attachments(item_id);
 """
 
 DEFAULT_TYPES = [

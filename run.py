@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Todo List 启动入口（开发运行 & Windows exe 均使用）。"""
+"""Todo List 启动入口。"""
 from __future__ import annotations
 
 import argparse

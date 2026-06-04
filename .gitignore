@@ -1,9 +1,8 @@
 .venv/
-.venv_build/
 __pycache__/
 *.pyc
 build/
 dist/
-*.spec.bak
 data/todo.db
+data/uploads/
 .DS_Store

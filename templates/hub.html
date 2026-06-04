@@ -126,6 +126,15 @@
         <div class="form-group">
           <label><input type="checkbox" id="f-regular"> 常规事项（日历下方列表展示）</label>
         </div>
+        <div class="form-group" id="attachment-section">
+          <label>附件</label>
+          <p class="attachment-hint" id="attachment-hint">保存事项后可上传附件（单文件最大 20MB）</p>
+          <div class="attachment-upload" id="attachment-upload" style="display:none;">
+            <input type="file" id="f-attachment-input" class="attachment-input" multiple>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-pick-attachment">选择文件</button>
+          </div>
+          <ul class="attachment-list" id="attachment-list"></ul>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" id="modal-cancel">取消</button>
