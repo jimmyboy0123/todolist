@@ -11,7 +11,28 @@
 | **常规事项** | 日历下方展示长期跟踪的常规事项 |
 | **周期任务** | 支持每天/每周/每月/每季度/每年等频率 |
 
-## 快速启动
+## Windows 打包 exe（无需本机 Python）
+
+### 方式 A：GitHub Actions（推荐）
+
+1. 将代码推送到 GitHub 的 `main` 分支
+2. 打开仓库 **Actions** → **Build Windows EXE**
+3. 等待运行完成，在 **Artifacts** 下载 `TodoList-Windows.zip`
+4. 解压后双击 `TodoList.exe` 即可使用
+
+也可在 Actions 页点击 **Run workflow** 手动触发打包。
+
+### 方式 B：Windows 本机打包
+
+```cmd
+build_exe.bat
+```
+
+成功后使用 `dist\TodoList.exe`。
+
+---
+
+## 快速启动（开发）
 
 ### Mac / Linux
 
@@ -45,6 +66,9 @@ todo_list/
 ├── static/             # CSS / JS
 ├── run.py              # 启动入口
 ├── start.sh / run.bat  # 一键启动脚本
+├── todo_list.spec      # PyInstaller 配置
+├── build_exe.bat       # Windows 本机打包
+├── .github/workflows/build-windows.yml  # GitHub 自动打包
 └── requirements.txt
 ```
 
