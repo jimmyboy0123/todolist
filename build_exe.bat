@@ -59,6 +59,16 @@ if exist "dist\TodoList.exe" (
     echo ==========================================
     echo   SUCCESS: dist\TodoList.exe
     echo ==========================================
+    set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+    if exist "%ISCC%" (
+        echo Building installer...
+        "%ISCC%" installer\TodoList.iss
+        if exist "installer\output\TodoList-Setup.exe" (
+            echo   Installer: installer\output\TodoList-Setup.exe
+        )
+    ) else (
+        echo   Tip: Install Inno Setup 6 to build TodoList-Setup.exe
+    )
 ) else (
     echo [ERROR] dist\TodoList.exe not found.
 )

@@ -1,6 +1,9 @@
 # Todo List — 个人事项 & 日历视图
 
-轻量事项管理工具。**无需登录**，使用 SQLite 本地存储，Windows 和 Mac 均可运行。
+轻量事项管理工具。**无需登录**，使用 SQLite 本地存储。
+
+- **Windows**：桌面程序 + 安装包（独立窗口，不打开浏览器）
+- **Mac / 开发**：可用脚本在浏览器中运行
 
 ## 功能
 
@@ -11,28 +14,40 @@
 | **常规事项** | 日历下方展示长期跟踪的常规事项 |
 | **周期任务** | 支持每天/每周/每月/每季度/每年等频率 |
 
-## Windows 打包 exe（无需本机 Python）
+## Windows 桌面版（给最终用户）
 
-### 方式 A：GitHub Actions（推荐）
+从 GitHub Actions 下载两种产物之一：
 
-1. 将代码推送到 GitHub 的 `main` 分支
-2. 打开仓库 **Actions** → **Build Windows EXE**
-3. 等待运行完成，在 **Artifacts** 下载 `TodoList-Windows.zip`
-4. 解压后双击 `TodoList.exe` 即可使用
+| 产物 | 说明 |
+|------|------|
+| **TodoList-Setup** | 安装程序，推荐普通用户：安装到「开始菜单」、可创建桌面快捷方式 |
+| **TodoList-Portable** | 绿色版：解压后双击 `TodoList.exe`，无需安装 |
 
-也可在 Actions 页点击 **Run workflow** 手动触发打包。
+### 获取安装包
 
-### 方式 B：Windows 本机打包
+1. 推送代码到 GitHub `main` 分支
+2. 打开 **Actions** → **Build Windows Desktop**
+3. 构建完成后在 **Artifacts** 下载 `TodoList-Setup` 或 `TodoList-Portable`
+
+安装/启动后会出现 **Todo List 桌面窗口**，不会自动打开 Chrome/Edge 浏览器标签页。
+
+### 本机打包（需 Windows + Python）
 
 ```cmd
 build_exe.bat
 ```
 
-成功后使用 `dist\TodoList.exe`。
+生成 `dist\TodoList.exe`。若已安装 [Inno Setup 6](https://jrsoftware.org/isinfo.php)，可再执行：
+
+```cmd
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TodoList.iss
+```
+
+得到 `installer\output\TodoList-Setup.exe`。
 
 ---
 
-## 快速启动（开发）
+## 快速启动（开发 / Mac）
 
 ### Mac / Linux
 
@@ -68,7 +83,8 @@ todo_list/
 ├── start.sh / run.bat  # 一键启动脚本
 ├── todo_list.spec      # PyInstaller 配置
 ├── build_exe.bat       # Windows 本机打包
-├── .github/workflows/build-windows.yml  # GitHub 自动打包
+├── installer/TodoList.iss  # Inno Setup 安装包脚本
+├── .github/workflows/build-windows.yml  # GitHub 自动打包桌面版
 └── requirements.txt
 ```
 

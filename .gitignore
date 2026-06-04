@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 build/
 dist/
+installer/output/
 data/todo.db
 data/uploads/
 .DS_Store

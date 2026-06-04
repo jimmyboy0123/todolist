@@ -1,7 +1,6 @@
-# 在 GitHub 云端自动打包 Windows exe，本机无需 Python
-# 用法：推送到 main 后，在 Actions 页下载 TodoList-Windows 压缩包
+# Windows 桌面版：PyInstaller exe + Inno Setup 安装包
 
-name: Build Windows EXE
+name: Build Windows Desktop
 
 on:
   workflow_dispatch:
@@ -14,6 +13,7 @@ on:
       - 'todo_list.spec'
       - 'requirements.txt'
       - 'USER_README.txt'
+      - 'installer/**'
       - '.github/workflows/build-windows.yml'
 
 jobs:
@@ -26,21 +26,34 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
-      - name: Build EXE
+      - name: Build desktop EXE
         run: python -m PyInstaller todo_list.spec --clean -y
 
       - name: Copy user readme
         run: copy USER_README.txt dist\USER_README.txt
 
-      - name: Upload artifact
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\TodoList.iss
+
+      - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: TodoList-Windows
+          name: TodoList-Portable
           path: |
             dist/TodoList.exe
             dist/USER_README.txt
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoList-Setup
+          path: installer/output/TodoList-Setup.exe

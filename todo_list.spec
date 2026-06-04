@@ -1,17 +1,30 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller 打包配置 — Windows 上执行 build_exe.bat 或 GitHub Actions 生成 TodoList.exe
+# Windows 桌面版打包 — GitHub Actions 或 build_exe.bat
+
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
+webview_hidden = collect_submodules("webview")
+webview_datas = collect_data_files("webview")
+
 a = Analysis(
-    ['run.py'],
+    ["run.py"],
     pathex=[],
     binaries=[],
     datas=[
-        ('templates', 'templates'),
-        ('static', 'static'),
+        ("templates", "templates"),
+        ("static", "static"),
+        *webview_datas,
     ],
-    hiddenimports=['app', 'calendar_service', 'db', 'paths'],
+    hiddenimports=[
+        "app",
+        "calendar_service",
+        "db",
+        "paths",
+        "webview",
+        *webview_hidden,
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -31,14 +44,14 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='TodoList',
+    name="TodoList",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
